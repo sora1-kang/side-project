@@ -19,7 +19,8 @@ export function loadDataset(): Promise<ToiletDataset> {
   let loaded = cache.get(path);
 
   if (!loaded) {
-    loaded = readFile(path, "utf8").then((text) => JSON.parse(text));
+    // 경로가 동적이라 프로젝트 전체가 추적되지 않게 막는다. 데이터 파일은 next.config.ts에서 직접 포함한다.
+    loaded = readFile(/*turbopackIgnore: true*/ path, "utf8").then((text) => JSON.parse(text));
     // 실패한 읽기는 저장하지 않아, 파일이 생기면 다음 요청에서 다시 읽는다.
     loaded.catch(() => cache.delete(path));
     cache.set(path, loaded);
