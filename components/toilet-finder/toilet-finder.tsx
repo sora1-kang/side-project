@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { MapPinIcon, MapPinOffIcon, NavigationIcon } from "lucide-react";
+import { MapIcon, MapPinIcon, MapPinOffIcon, NavigationIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +186,18 @@ export function ToiletFinder() {
     }
   }, [selectedId]);
 
+  // 지도가 화면에서 완전히 벗어났을 때만 "지도 보기" 버튼을 띄운다.
+  const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null);
+  const [mapHidden, setMapHidden] = useState(false);
+  useEffect(() => {
+    if (!mapEl || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setMapHidden(!entry.isIntersecting)
+    );
+    observer.observe(mapEl);
+    return () => observer.disconnect();
+  }, [mapEl]);
+
   if (location.status === "locating") {
     return <Skeleton className="h-96 w-full" aria-label="현재 위치를 확인하는 중" />;
   }
@@ -247,7 +259,10 @@ export function ToiletFinder() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="h-[50vh] min-h-72 overflow-hidden rounded-lg border lg:h-[32rem]">
+        <div
+          ref={setMapEl}
+          className="h-[50vh] min-h-72 scroll-mt-4 overflow-hidden rounded-lg border lg:h-[32rem]"
+        >
           {origin && (
             <ToiletMap
               origin={origin}
@@ -357,6 +372,17 @@ export function ToiletFinder() {
           )}
         </div>
       </div>
+
+      {mapHidden && (
+        <Button
+          type="button"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full shadow-lg"
+          onClick={() => mapEl?.scrollIntoView({ block: "start", behavior: "smooth" })}
+        >
+          <MapIcon data-icon="inline-start" />
+          지도 보기
+        </Button>
+      )}
     </div>
   );
 }
