@@ -16,6 +16,9 @@ import {
   type Coordinates,
   type NearbyToilet,
 } from "@/lib/toilets";
+import type { ReviewSummary } from "@/lib/reviews";
+
+import { ToiletReviews } from "./toilet-reviews";
 
 const ToiletMap = dynamic(() => import("./toilet-map"), {
   ssr: false,
@@ -121,6 +124,42 @@ function useNearbyToilets(origin: Coordinates | null, radiusM: number) {
   return { result, retry: () => setAttempt((n) => n + 1) };
 }
 
+// 후기는 목록과 따로 불러온다. 실패해도 화장실 목록은 그대로 쓸 수 있어야 한다.
+function useReviews(toilets: NearbyToilet[]) {
+  const [summaries, setSummaries] = useState<Record<string, ReviewSummary>>({});
+  const [attempt, setAttempt] = useState(0);
+  const ids = toilets.map((toilet) => toilet.id).join(",");
+
+  useEffect(() => {
+    if (!ids) return;
+    const controller = new AbortController();
+
+    fetch(`/api/reviews?toiletIds=${encodeURIComponent(ids)}`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((body) => setSummaries((prev) => ({ ...prev, ...body.summaries })))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [ids, attempt]);
+
+  async function submit(toiletId: string, input: { rating: number; comment: string }) {
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toiletId, ...input }),
+      });
+      if (!res.ok) return false;
+      setAttempt((n) => n + 1);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return { summaries, submit };
+}
+
 export function ToiletFinder() {
   const { location, retry: retryLocation } = useLocation();
   const origin = location.status === "ready" ? location.origin : null;
@@ -134,6 +173,9 @@ export function ToiletFinder() {
   }, [radiusM]);
 
   const { result, retry: retryFetch } = useNearbyToilets(origin, queryRadiusM);
+  const { summaries, submit: submitReview } = useReviews(
+    result.status === "ready" ? result.toilets : []
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const select = useCallback((id: string) => setSelectedId(id), []);
 
@@ -274,6 +316,11 @@ export function ToiletFinder() {
                       </div>
                       <p className="text-sm text-muted-foreground">{toilet.address}</p>
                       <p className="text-sm">개방시간 {toilet.openingHours}</p>
+                      <ToiletReviews
+                        toiletName={toilet.name}
+                        summary={summaries[toilet.id]}
+                        onSubmit={(input) => submitReview(toilet.id, input)}
+                      />
                       <a
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                         href={directionsUrl(toilet)}
