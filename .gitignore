@@ -50,3 +50,6 @@ next-env.d.ts
 
 # worktree
 .claude/worktrees
+
+# 좌표 변환 중간 결과
+data/.cache/
