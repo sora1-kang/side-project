@@ -334,10 +334,19 @@ export function ToiletFinder() {
                       <div className="flex items-start justify-between gap-2">
                         <button
                           type="button"
-                          className="text-left font-medium underline-offset-4 hover:underline"
+                          className="flex items-center gap-1.5 text-left font-medium underline-offset-4 hover:underline"
                           aria-pressed={toilet.id === selectedId}
                           onClick={() => select(toilet.id)}
                         >
+                          {/* 지도 핀과 같은 색: 선택하면 빨강, 아니면 초록 */}
+                          <MapPinIcon
+                            aria-hidden
+                            className={
+                              toilet.id === selectedId
+                                ? "size-4 shrink-0 fill-red-600/20 text-red-600"
+                                : "size-4 shrink-0 fill-green-600/20 text-green-600"
+                            }
+                          />
                           {toilet.name}
                         </button>
                         <Badge variant="secondary">{formatDistance(toilet.distanceM)}</Badge>

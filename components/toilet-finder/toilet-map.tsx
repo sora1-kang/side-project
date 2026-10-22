@@ -69,16 +69,25 @@ export default function ToiletMap({ origin, toilets, selectedId, onSelect }: Pro
 
     for (const toilet of toilets) {
       const selected = toilet.id === selectedId;
-      L.circleMarker([toilet.lat, toilet.lng], {
+      const marker = L.circleMarker([toilet.lat, toilet.lng], {
         radius: selected ? 12 : 8,
         color: "#ffffff",
         weight: 2,
         fillColor: selected ? "#dc2626" : "#16a34a",
         fillOpacity: 1,
       })
-        .bindTooltip(textNode(toilet.name))
+        // 선택된 핀은 이름을 항상 보여줘서 목록에서 골라도 지도에서 바로 찾을 수 있다.
+        .bindTooltip(textNode(toilet.name), { permanent: selected })
         .on("click", () => onSelect(toilet.id))
         .addTo(layer);
+
+      if (selected) {
+        marker.bringToFront();
+        // 선택한 핀이 지도 밖에 있으면 화면 안으로 옮긴다.
+        if (!map.getBounds().contains(marker.getLatLng())) {
+          map.panTo(marker.getLatLng());
+        }
+      }
     }
 
     // 조회 결과가 바뀔 때만 화면을 맞추고, 핀을 고를 때는 움직이지 않는다.
