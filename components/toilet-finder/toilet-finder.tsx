@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { MapPinIcon, MapPinOffIcon, NavigationIcon } from "lucide-react";
 
@@ -178,6 +178,13 @@ export function ToiletFinder() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const select = useCallback((id: string) => setSelectedId(id), []);
+  const itemRefs = useRef(new Map<string, HTMLLIElement>());
+
+  useEffect(() => {
+    if (selectedId) {
+      itemRefs.current.get(selectedId)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedId]);
 
   if (location.status === "locating") {
     return <Skeleton className="h-96 w-full" aria-label="현재 위치를 확인하는 중" />;
@@ -296,7 +303,13 @@ export function ToiletFinder() {
           {result.status === "ready" && toilets.length > 0 && (
             <ul className="flex flex-col gap-3">
               {toilets.map((toilet) => (
-                <li key={toilet.id}>
+                <li
+                  key={toilet.id}
+                  ref={(node) => {
+                    if (node) itemRefs.current.set(toilet.id, node);
+                    else itemRefs.current.delete(toilet.id);
+                  }}
+                >
                   <Card
                     className={
                       toilet.id === selectedId ? "ring-2 ring-primary" : undefined
